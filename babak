@@ -1,0 +1,64 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use YAML::Tiny 'LoadFile';
+
+# Load hosts file and set defaults
+
+my $hosts_file = 'hosts.yml';
+my $hosts = LoadFile($hosts_file);
+
+for (keys %{$hosts}) {
+  my $host = $hosts->{$_};
+  $host->{port} = 22 unless exists($host->{port});
+}
+
+# Load backup manifest file
+
+my $manifest_file = 'manifest.tsv';
+open(FILE, '<', $manifest_file) or die "Could not open '$manifest_file' $!\n";
+while (my $line = <FILE>) {
+  chomp $line;
+  next if $line =~ /^#/;
+  my @fields = split(/\t/, $line, -1); # Do not strip trailing empty elements
+
+  my ($src_host,  $src_path)  = split(/:/, $fields[0], -1);
+  my ($dest_host, $dest_path) = split(/:/, $fields[1], -1);
+
+  my $include_pattern = $fields[2];
+  my $exclude_pattern = $fields[3];
+
+  my $port;
+  my $src_arg;
+  my $dest_arg;
+
+  if ($src_host eq 'local') {
+    my $h        = $hosts->{$dest_host};
+    my $username = $h->{username};
+    my $hostname = $h->{hostname};
+    $port        = $h->{port};
+
+    $dest_arg = $username . "@" . $hostname . ":" . $dest_path;
+    $src_arg  = $src_path;
+  } elsif ($dest_host eq 'local') {
+    my $h        = $hosts->{$src_host};
+    my $username = $h->{username};
+    my $hostname = $h->{hostname};
+    $port        = $h->{port};
+
+    $src_arg  = $username . "@" . $hostname . ":" . $src_path;
+    $dest_arg = $dest_path;
+  } else {
+    die "One of the hosts has to be local.";
+  }
+
+  print "#!/usr/bin/env bash";
+  (my $command = qq{
+    rsync -aznP --rsh 'ssh -p $port' \\
+      --include '*/' --include '$include_pattern' \\
+      --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg
+  }) =~ s/^ {2,4}//mg;
+  print $command;
+}
+close(FILE);
