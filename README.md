@@ -7,7 +7,8 @@ backup purposes.
 ## Requirements
 
 The only dependency for babak is perl5.  It is however highly recommended
-to use babak in combination with `crontab`.  More details can be found below.
+to use babak in combination with `crontab`.  It is also assumed that you have properly
+set up SSH keys between your computers and the hosts.  More details can be found below.
 
 ## Installation
 
@@ -73,6 +74,10 @@ one of the following entries to `crontab -e`:
 
 For more sophisticated uses of `crontab`, feel free to consult online documentation on
 the matter.
+
+It is also recommended that you *manually* run (outside of `crontab`) the script
+produced by babak, just to make sure that you have properly set up your SSH keys and
+whatnot.
 
 ## Advanced Features
 
