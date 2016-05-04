@@ -49,6 +49,8 @@ to a remote server, write the following:
 #SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN
 local:/home/jim	raynor:/home/jraynor/backup	*	
 ```
+Warning: Every field must be present for every line. (A tab must separate every field
+even if a field is empty)
 
 Then, when you call `babak`, a shell script will be created in `~/.babak/script.sh`
 which you can then add to your `crontab`.
@@ -68,7 +70,7 @@ one of the following entries to `crontab -e`:
 ```
 # To run the transfer five minutes after midnight, every day
 5 0 * * * $HOME/.babak/script.sh
-# To run the transfer once a week on a Friday night at 11a
+# To run the transfer once a week on a Friday night at 10pm
 0 22 * * fri $HOME/.babak/script.sh
 ```
 
@@ -88,7 +90,7 @@ local machine to a remote host, follow this example:
 
 ```
 #SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN
-local:/home/jim	raynor:/home/jraynor/backup	*	*.**
+local:/home/jim	raynor:/home/jraynor/backup	*	*.*
 ```
 
 If you wish to exclude all but a given set of patterns, set `EXCLUDE_PATTERN`
