@@ -2,26 +2,41 @@
 
 use strict;
 use warnings;
-use YAML::Tiny 'LoadFile';
 
-# Load hosts file and set defaults
+#
+# Load hosts file
+#
 
-my $hosts_file = 'hosts.yml';
-my $hosts = LoadFile($hosts_file);
+my $hosts_file = "$ENV{HOME}/.babak/hosts.tsv";
+my %hosts;
+open(FILE, '<', $hosts_file) or die "Could not open '$hosts_file' $!\n";
+while (my $line = <FILE>) {
+  chomp $line;
+  next if $line =~ /^#/; # Ignore comments
+  my @fields = split(/\t/, $line, -1);
 
-for (keys %{$hosts}) {
-  my $host = $hosts->{$_};
-  $host->{port} = 22 unless exists($host->{port});
+  unless ($#fields == 3) {
+    die "Host defined in '$hosts_file' on line $. does not have exactly 3 fields."
+  }
+
+  my ($host, $username, $hostname, $port) = @fields;
+  $hosts{$host}{username} = $username;
+  $hosts{$host}{hostname} = $hostname;
+  $hosts{$host}{port}     = $port;
 }
+close(FILE);
 
+#
 # Load backup manifest file
+#
 
-my $manifest_file = 'manifest.tsv';
+my $manifest_file = "$ENV{HOME}/.babak/manifest.tsv";
+my $command;
 open(FILE, '<', $manifest_file) or die "Could not open '$manifest_file' $!\n";
 while (my $line = <FILE>) {
   chomp $line;
-  next if $line =~ /^#/;
-  my @fields = split(/\t/, $line, -1); # Do not strip trailing empty elements
+  next if $line =~ /^#/; # Ignore comments
+  my @fields = split(/\t/, $line, -1);
 
   my ($src_host,  $src_path)  = split(/:/, $fields[0], -1);
   my ($dest_host, $dest_path) = split(/:/, $fields[1], -1);
@@ -33,32 +48,81 @@ while (my $line = <FILE>) {
   my $src_arg;
   my $dest_arg;
 
+  ##
+  ## Local source host (outbound operation)
+  ##
+
   if ($src_host eq 'local') {
-    my $h        = $hosts->{$dest_host};
+
+    unless (exists($hosts{$dest_host})) {
+      die <<EOF
+Destination host '$dest_host'
+  --> mentioned in '$manifest_file' on line $.
+  --> but not defined in '$hosts_file'
+EOF
+    }
+
+    my $h        = $hosts{$dest_host};
     my $username = $h->{username};
     my $hostname = $h->{hostname};
     $port        = $h->{port};
 
     $dest_arg = $username . "@" . $hostname . ":" . $dest_path;
     $src_arg  = $src_path;
-  } elsif ($dest_host eq 'local') {
-    my $h        = $hosts->{$src_host};
+  }
+
+  ##
+  ## Local destination host (inbound operation)
+  ##
+
+  elsif ($dest_host eq 'local') {
+
+    unless (exists($hosts{$dest_host})) {
+      die <<EOF
+Source host '$src_host'
+  --> mentioned in '$manifest_file' on line $.
+  --> but not defined in '$hosts_file'
+EOF
+    }
+
+    my $h        = $hosts{$src_host};
     my $username = $h->{username};
     my $hostname = $h->{hostname};
     $port        = $h->{port};
 
     $src_arg  = $username . "@" . $hostname . ":" . $src_path;
     $dest_arg = $dest_path;
-  } else {
-    die "One of the hosts has to be local.";
   }
 
-  print "#!/usr/bin/env bash";
-  (my $command = qq{
-    rsync -aznP --rsh 'ssh -p $port' \\
-      --include '*/' --include '$include_pattern' \\
-      --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg
-  }) =~ s/^ {2,4}//mg;
-  print $command;
+  ##
+  ## Neither inbound nor outbound operation: error
+  ##
+
+  else {
+    die <<EOF
+At least one of the hosts mentioned in '$manifest_file' on line $. but be local:
+  --> '$src_host' and '$dest_host'
+EOF
+  }
+
+  ##
+  ## Prepare the statement
+  ##
+
+  $command .= <<EOF;
+rsync -azuv --rsh 'ssh -p $port' \\
+  --include '*/' --include '$include_pattern' \\
+  --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg
+EOF
 }
 close(FILE);
+
+##
+## Write shell script
+##
+
+my $output_file = "$ENV{HOME}/.babak/script.sh";
+open(my $output, ">", $output_file) or die "Could not open '$output_file' $!\n";
+print $output "#!/usr/bin/env sh\n";
+print $output $command;
+close($output);
