@@ -77,7 +77,7 @@ EOF
 
   elsif ($dest_host eq 'local') {
 
-    unless (exists($hosts{$dest_host})) {
+    unless (exists($hosts{$src_host})) {
       die <<EOF
 Source host '$src_host'
   --> mentioned in '$manifest_file' on line $.
