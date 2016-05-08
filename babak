@@ -32,6 +32,8 @@ close(FILE);
 
 my $manifest_file = "$ENV{HOME}/.babak/manifest.tsv";
 my $command;
+my $thread = 0;
+my @log_files;
 open(FILE, '<', $manifest_file) or die "Could not open '$manifest_file' $!\n";
 while (my $line = <FILE>) {
   chomp $line;
@@ -109,11 +111,17 @@ EOF
   ## Prepare the statement
   ##
 
+  my $log_file = "$ENV{HOME}/.babak/script.$thread.log";
+  push(@log_files, $log_file);
+
   $command .= <<EOF;
 rsync -azuv --rsh 'ssh -p $port' \\
   --include '*/' --include '$include_pattern' \\
-  --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg
+  --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg \\
+  > $log_file &
 EOF
+
+  $thread++;
 }
 close(FILE);
 
@@ -121,8 +129,12 @@ close(FILE);
 ## Write shell script
 ##
 
+my $log_files = join(' ', @log_files);
 my $output_file = "$ENV{HOME}/.babak/script.sh";
 open(my $output, ">", $output_file) or die "Could not open '$output_file' $!\n";
 print $output "#!/usr/bin/env sh\n";
-print $output $command;
+print $output "$command\n";
+print $output "wait\n";
+print $output "cat $log_files > $ENV{HOME}/.babak/script.log\n";
+print $output "rm $log_files\n";
 close($output);
