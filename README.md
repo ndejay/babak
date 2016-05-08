@@ -55,13 +55,20 @@ even if a field is empty)
 Then, when you call `babak`, a shell script will be created in `~/.babak/script.sh`
 which you can then add to your `crontab`.
 
+Each entry in your `manifest.tsv` file will be launched in a separate thread, and each
+thread will have its own temporary log file `~/.babak/script.0.log` which will then
+be concatenated `~/.babak/script.log` when all threads are done running.
+
 ```
 $ babak
 $ cat ~/.babak/script.sh
 #!/usr/bin/env sh
 rsync -azup --rsh 'ssh -p 22' \
   --include '*/' --include '*' \
-  --exclude '' --prune-empty-dirs /home/jim jraynor@hostname1.lan:/home/jraynor/backup
+  --exclude '' --prune-empty-dirs /home/jim jraynor@hostname1.lan:/home/jraynor/backup &
+cat /home/jim/.babak/script.0.log > /home/jim/.babak/script.log
+rm /home/jim/.babak/script.0.log
+wait
 ```
 
 Define the frequency at which you want these transfers to be completed by adding the
@@ -69,9 +76,9 @@ one of the following entries to `crontab -e`:
 
 ```
 # To run the transfer five minutes after midnight, every day
-5 0 * * * $HOME/.babak/script.sh >> $HOME/.babak/script.log
+5 0 * * * $HOME/.babak/script.sh
 # To run the transfer once a week on a Friday night at 10pm
-0 22 * * fri $HOME/.babak/script.sh >> $HOME/.babak/script.log
+0 22 * * fri $HOME/.babak/script.sh
 ```
 
 For more sophisticated uses of `crontab`, feel free to consult online documentation on
@@ -94,12 +101,12 @@ local:/home/jim	raynor:/home/jraynor/backup	*	*.*
 ```
 
 If you wish to exclude all but a given set of patterns, set `EXCLUDE_PATTERN`
-to ` ` (blank) and define `INCLUDE_PATTERN`.  For example, if you want to transfer
+to `*` and define `INCLUDE_PATTERN`.  For example, if you want to transfer
 all the files that start with a `.`, try the following:
 
 ```
 #SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN
-local:/home/jim	raynor:/home/jraynor/backup	.*	
+local:/home/jim	raynor:/home/jraynor/backup	.*	*
 ```
 
 It is also worth mentioning that all lines beginning with the `#` symbol are
