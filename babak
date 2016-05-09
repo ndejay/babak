@@ -16,7 +16,7 @@ while (my $line = <FILE>) {
   my @fields = split(/\t/, $line, -1);
 
   unless ($#fields == 3) {
-    die "Host defined in '$hosts_file' on line $. does not have exactly 3 fields."
+    die "Host defined in '$hosts_file' on line $. does not have exactly 3 fields.";
   }
 
   my ($host, $username, $hostname, $port) = @fields;
@@ -40,11 +40,17 @@ while (my $line = <FILE>) {
   next if $line =~ /^#/; # Ignore comments
   my @fields = split(/\t/, $line, -1);
 
+  unless ($#fields == 4) {
+    die "Entry defined in '$manifest_file' on line $. does not have exactly 5 fields.";
+  }
+
   my ($src_host,  $src_path)  = split(/:/, $fields[0], -1);
   my ($dest_host, $dest_path) = split(/:/, $fields[1], -1);
 
   my $include_pattern = $fields[2];
   my $exclude_pattern = $fields[3];
+
+  my $options = $fields[4];
 
   my $port;
   my $src_arg;
@@ -118,6 +124,7 @@ EOF
 rsync -azuv --rsh 'ssh -p $port' \\
   --include '*/' --include '$include_pattern' \\
   --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg \\
+  $options \\
   > $log_file &
 EOF
 

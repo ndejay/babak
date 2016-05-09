@@ -46,8 +46,8 @@ In the simplest use case, if you wish to transfer all the files in your home dir
 to a remote server, write the following:
 
 ```
-#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN
-local:/home/jim	raynor:/home/jraynor/backup	*	
+#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN	OPTIONS
+local:/home/jim	raynor:/home/jraynor/backup	*		
 ```
 Warning: Every field must be present for every line. (A tab must separate every field
 even if a field is empty)
@@ -65,7 +65,9 @@ $ cat ~/.babak/script.sh
 #!/usr/bin/env sh
 rsync -azup --rsh 'ssh -p 22' \
   --include '*/' --include '*' \
-  --exclude '' --prune-empty-dirs /home/jim jraynor@hostname1.lan:/home/jraynor/backup &
+  --exclude '' --prune-empty-dirs /home/jim jraynor@hostname1.lan:/home/jraynor/backup \
+  \
+  > /home/jim/.babak/script.0.log &
 cat /home/jim/.babak/script.0.log > /home/jim/.babak/script.log
 rm /home/jim/.babak/script.0.log
 wait
@@ -90,14 +92,20 @@ whatnot.
 
 ## Advanced Features
 
+It is worth mentioning that all lines beginning with the `#` symbol are
+automatically ignored, so feel free to annotate your file definitions as you
+please.  Also, these are tab-separated files.
+
+### Pattern Matching
+
 If you wish to include all but a given a set of patterns, set `INCLUDE_PATTERN`
 to `*` and define `EXCLUDE_PATTERN`.  For example, if you want to transfer all
 files except those starting with a `.` (dotfiles) from your home directory on the
 local machine to a remote host, follow this example:
 
 ```
-#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN
-local:/home/jim	raynor:/home/jraynor/backup	*	*.*
+#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN	OPTIONS
+local:/home/jim	raynor:/home/jraynor/backup	*	*.*	
 ```
 
 If you wish to exclude all but a given set of patterns, set `EXCLUDE_PATTERN`
@@ -105,13 +113,23 @@ to `*` and define `INCLUDE_PATTERN`.  For example, if you want to transfer
 all the files that start with a `.`, try the following:
 
 ```
-#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN
-local:/home/jim	raynor:/home/jraynor/backup	.*	*
+#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN	OPTIONS
+local:/home/jim	raynor:/home/jraynor/backup	.*	*	
 ```
 
-It is also worth mentioning that all lines beginning with the `#` symbol are
-automatically ignored, so feel free to annotate your file definitions as you
-please.  Also, these are tab-separated files.
+### Additional Options
+
+You can also pass any extra options to `rsync` using the `OPTIONS` column.
+For instance, if you want all extraneous files to be deleted in the destination,
+define your entry as follows:
+
+```
+#SOURCE_PATH	DESTINATION_PATH	INCLUDE_PATTERN	EXCLUDE_PATTERN	OPTIONS
+local:/home/jim	raynor:/home/jraynor/backup	.*	*	--delete
+```
+
+These will be passed verbatim to the `rsync` call.  You may wish to consult the
+`rsync` manpage for a more exhaustive list of options.
 
 ## License
 
