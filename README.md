@@ -78,9 +78,9 @@ one of the following entries to `crontab -e`:
 
 ```
 # To run the transfer five minutes after midnight, every day
-5 0 * * * $HOME/.babak/script.sh
+5 0 * * * bash /home/jim/.babak/script.sh
 # To run the transfer once a week on a Friday night at 10pm
-0 22 * * fri $HOME/.babak/script.sh
+0 22 * * fri bash /home/jim/.babak/script.sh
 ```
 
 For more sophisticated uses of `crontab`, feel free to consult online documentation on
