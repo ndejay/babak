@@ -125,7 +125,7 @@ rsync -azuv --rsh 'ssh -p $port' \\
   --include '*/' --include '$include_pattern' \\
   --exclude '$exclude_pattern' --prune-empty-dirs $src_arg $dest_arg \\
   $options \\
-  > $log_file &
+  >$log_file 2>&1 &
 EOF
 
   $thread++;
